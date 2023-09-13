@@ -2,7 +2,7 @@ package = "luacov-console"
 version = "1.2.0-1"
 source = {
    url = "git+https://github.com/ochaton/luacov-console",
-   tag = "1.1"
+   tag = "1.2"
 }
 description = {
    summary = "Combine luacov with your development cycle and CI",

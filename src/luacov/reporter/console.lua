@@ -1,6 +1,7 @@
 local lfs = require('lfs')
 local luacov = require("luacov.runner")
 local luacov_reporter = require("luacov.reporter")
+local unix_path = require("path").new("/")
 
 local ReporterBase = luacov_reporter.ReporterBase
 local ConsoleReporter = setmetatable({}, ReporterBase) do
@@ -100,6 +101,31 @@ function ConsoleReporter:new(config)
     if not is_dir(workdir) then
         return nil, workdir .. " is not a directory"
     end
+
+    reporter._reverse_path = {}
+    if config.pathcorrect then
+        local pats = {}
+        for i, p in ipairs(config.pathcorrect) do
+            assert(type(p)    == "table")
+            assert(type(p[1]) == "string")
+            assert(type(p[2]) == "string")
+            pats[i] = {p[1], p[2]}
+        end
+
+        for _, filename in pairs(reporter._files) do
+            -- do correct path:
+            local path = filename
+            for _, patt in ipairs(pats) do
+                path = path:gsub(patt[1], patt[2])
+            end
+
+            local corrected = unix_path:normolize(path)
+            if filter(corrected) then
+                reporter._reverse_path[corrected] = filename
+            end
+        end
+    end
+
     reporter._files = {}
     local files = dirwalk(workdir, filter)
     for _, file in ipairs(files) do
@@ -117,6 +143,11 @@ function ConsoleReporter:new(config)
     end
 
     return reporter, ""
+end
+
+function ConsoleReporter:stats(filename)
+    local file = self._reverse_path[filename] or filename
+    return ReporterBase.stats(self, file)
 end
 
 function ConsoleReporter:on_start()
